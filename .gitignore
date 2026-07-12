@@ -1,50 +1,121 @@
+# =========================
 # Python
+# =========================
 __pycache__/
 *.py[cod]
 *$py.class
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-.coverage.*
-htmlcov/
+
+# Virtual environments
 .venv/
 venv/
 env/
 
-# Node / Vite
-node_modules/
-frontend/dist/
-*.tsbuildinfo
-.vite/
+# Python test / lint / type-check caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+.tox/
+.nox/
 
-# Runtime and local data
-*.log
-logs/
-backend/uploads/
-backend/tmp/
-*.sqlite3
-dump.rdb
-appendonly.aof
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
 
-# Environment variables and secrets
-.env
-.env.*
-!.env.example
-!**/.env.example
-*.pem
-*.key
-
-# IDE / OS
-.idea/
-.vscode/
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Build / package artifacts
+# Python build artifacts
 build/
 dist/
 *.egg-info/
 .eggs/
 
+# Python local files
+.python-version
+
+
+# =========================
+# Node.js / Vue / Vite
+# =========================
+node_modules/
+frontend/node_modules/
+
+# Frontend build output
+frontend/dist/
+
+# Vite cache
+.vite/
+frontend/.vite/
+
+# Frontend test coverage
+frontend/coverage/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# npm / yarn / pnpm logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Secrets and certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+
+# =========================
+# Runtime and local data
+# =========================
+*.log
+logs/
+
+backend/uploads/
+backend/tmp/
+
+*.sqlite
+*.sqlite3
+*.db
+
+dump.rdb
+appendonly.aof
+
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+
+# =========================
+# IDE
+# =========================
+.idea/
+.vscode/
+
+# Agent working files
+.agents/
+
+
+# =========================
+# Operating system
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
