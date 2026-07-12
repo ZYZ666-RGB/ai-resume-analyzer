@@ -8,7 +8,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 os.environ["REDIS_ENABLED"] = "false"
-os.environ.pop("DASHSCOPE_API_KEY", None)
+
+# 单元测试禁止读取本地 .env 中的真实 API Key，
+# 避免测试真实调用百炼接口。
+os.environ["DASHSCOPE_API_KEY"] = ""
 
 from app.main import app  # noqa: E402
 
