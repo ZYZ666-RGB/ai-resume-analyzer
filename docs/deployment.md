@@ -8,7 +8,7 @@
 flowchart LR
     User["公网浏览器"] -->|"HTTPS"| Static["Vercel 或 GitHub Pages\nVue 静态文件"]
     Static -->|"HTTPS REST"| FC["阿里云 FC\nFastAPI 自定义容器 :8000"]
-    FC -->|"HTTPS"| Bailian["阿里云百炼\nqwen-plus"]
+    FC -->|"HTTPS"| Bailian["阿里云百炼\nqwen3.7-plus"]
     FC -->|"私网 / TLS"| Redis["云 Redis（可选）"]
     FC --> Logs["日志服务 SLS\n脱敏 stdout"]
     ACR["容器镜像服务 ACR\nlinux/amd64"] --> FC
@@ -82,7 +82,7 @@ VITE_API_BASE_URL=http://localhost:8000
 
 ```env
 DASHSCOPE_API_KEY=replace_with_your_key
-DASHSCOPE_MODEL=qwen-plus
+DASHSCOPE_MODEL=qwen3.7-plus
 CORS_ORIGINS=http://localhost:5173
 ```
 
@@ -196,8 +196,8 @@ DEBUG=false
 PORT=8000
 
 DASHSCOPE_API_KEY=<set-in-console-or-secret-manager>
-DASHSCOPE_MODEL=qwen-plus
-DASHSCOPE_TIMEOUT=60
+DASHSCOPE_MODEL=qwen3.7-plus
+DASHSCOPE_TIMEOUT=120
 DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
 
 REDIS_ENABLED=true

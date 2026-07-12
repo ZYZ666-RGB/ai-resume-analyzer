@@ -41,8 +41,8 @@ class Settings(BaseModel):
     api_prefix: str = "/api"
 
     dashscope_api_key: str | None = None
-    dashscope_model: str = "qwen-plus"
-    dashscope_timeout: float = Field(default=60.0, gt=0)
+    dashscope_model: str = "qwen3.7-plus"
+    dashscope_timeout: float = Field(default=120.0, gt=0)
     dashscope_base_url: str = (
         "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
     )
@@ -78,8 +78,8 @@ class Settings(BaseModel):
             debug=_as_bool(os.getenv("DEBUG"), False),
             port=_as_int(os.getenv("PORT"), 8000),
             dashscope_api_key=api_key,
-            dashscope_model=os.getenv("DASHSCOPE_MODEL", "qwen-plus"),
-            dashscope_timeout=_as_float(os.getenv("DASHSCOPE_TIMEOUT"), 60.0),
+            dashscope_model=os.getenv("DASHSCOPE_MODEL", "qwen3.7-plus"),
+            dashscope_timeout=_as_float(os.getenv("DASHSCOPE_TIMEOUT"), 120.0),
             dashscope_base_url=os.getenv(
                 "DASHSCOPE_BASE_URL",
                 "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",

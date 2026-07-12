@@ -25,8 +25,8 @@ services:
       DEBUG: ${DEBUG:-false}
       PORT: 8000
       DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
-      DASHSCOPE_MODEL: ${DASHSCOPE_MODEL:-qwen-plus}
-      DASHSCOPE_TIMEOUT: ${DASHSCOPE_TIMEOUT:-60}
+      DASHSCOPE_MODEL: ${DASHSCOPE_MODEL:-qwen3.7-plus}
+      DASHSCOPE_TIMEOUT: ${DASHSCOPE_TIMEOUT:-120}
       DASHSCOPE_BASE_URL: ${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions}
       REDIS_ENABLED: ${REDIS_ENABLED:-true}
       REDIS_HOST: redis
