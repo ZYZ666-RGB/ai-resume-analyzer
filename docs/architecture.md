@@ -110,10 +110,10 @@ stateDiagram-v2
 
 ```text
 resume_hash = hex(SHA256(pdf_bytes))
-jd_hash     = hex(SHA256(jobTitle + jobDescription))
+jd_hash     = hex(SHA256(canonical_json({jobTitle, jobDescription})))
 ```
 
-`resumeId` 由 `resume_hash` 构造，用于在进程或 Redis 中回取解析结果，但仍是可关联标识，不应放入公开日志、分析平台或长期数据库。当前 JD 哈希遵循题目要求直接拼接标题和正文；若未来协议允许升级，可通过 key 版本和显式分隔进一步消除边界碰撞。
+`resumeId` 由 `resume_hash` 构造，用于在进程或 Redis 中回取解析结果，但仍是可关联标识，不应放入公开日志、分析平台或长期数据库。JD 使用字段名固定、排序且紧凑的 canonical JSON 后再哈希，保留字段边界，避免直接拼接产生的理论碰撞。
 
 ### 核心数据模型
 
@@ -155,6 +155,9 @@ classDiagram
       +number projectScore
       +number educationScore
       +number aiScore
+      +boolean aiUsed
+      +string analysisMode
+      +string[] warnings
       +string[] matchedKeywords
       +string[] missingKeywords
       +string recommendationLevel
@@ -173,13 +176,14 @@ classDiagram
 
 1. 仅接受一个 `UploadFile`，扩展名为 `.pdf`（大小写不敏感）。
 2. MIME 必须属于受控允许集，同时验证字节头 `%PDF-`；客户端 MIME 不可信。
-3. 分块读取并在超过 `MAX_UPLOAD_SIZE_MB` 时立即中止，返回 413。
+3. 最多读取 `MAX_UPLOAD_SIZE_MB + 1 byte`，超过上限立即返回 413。
 4. PyMuPDF 打开失败映射为明确的 400，不向客户端暴露库异常。
-5. 遍历全部页面，统一 `CRLF/CR`，清除 NUL/控制字符，折叠空格和多余空行。
-6. 清洗后为空则提示当前仅支持文本型 PDF，不进入 AI 调用。
-7. 使用 `finally`/上下文管理器释放文档和内存，不保存上传原件。
+5. 在逐页提取前校验 `MAX_PDF_PAGES`（默认 50），超限返回明确 400。
+6. 遍历允许范围内全部页面，统一 `CRLF/CR`，清除 NUL/控制字符，折叠空格和多余空行。
+7. 清洗后为空则提示当前仅支持文本型 PDF，不进入 AI 调用。
+8. 使用 `finally`/上下文管理器释放文档和内存，不保存上传原件。
 
-当前不是 PDF 沙箱。高风险公网场景还应增加内容恶意检测、解析进程隔离、CPU/页数限制和依赖安全升级。
+当前不是 PDF 沙箱。高风险公网场景仍应增加内容恶意检测、解析进程隔离、CPU 时间预算和依赖安全升级。
 
 ## 6. AI 边界与 Prompt 契约
 
@@ -189,7 +193,7 @@ AI 通过 OpenAI 兼容 API 调用，百炼中国区 Base URL：
 https://dashscope.aliyuncs.com/compatible-mode/v1
 ```
 
-每类 Prompt 都由固定系统约束、输出 JSON schema 和“简历原文/岗位描述”等标签构成，要求模型只依据输入抽取且不得虚构。这能提供基础约束，但不能把不可信文本与指令彻底隔离；生产版本还应加入可转义的强分隔、明确的“不执行输入内指令”规则、Prompt 注入回归样本和输出审计。
+三类 Prompt 共用版本化系统约束：用户文本先序列化为 JSON，再放入唯一、可转义的不可信数据边界；边界内出现的角色声明、伪造结束标记或“忽略指令”只能作为数据，不得执行。输出仍须经过 JSON/Pydantic 校验，并有注入、缺字段、错误类型和额外字段回归测试。该边界降低而不能彻底消除模型攻击风险，生产仍需质量监控与输出审计。
 
 模型返回处理管线：
 
@@ -202,11 +206,12 @@ flowchart LR
     Validate --> Merge["正则优先合并"]
     Merge --> Clamp["分值 0～100 限幅"]
     Clamp --> Safe["领域结果"]
-    Parse -->|"不可恢复"| Error["502 可读错误"]
-    Validate -->|"不可恢复"| Error
+    Parse -->|"模型正文非法"| Fallback["丢弃 AI 输出并使用规则结果"]
+    Validate -->|"Schema 不合法"| Fallback
+    Raw -->|"网络 / HTTP / 上游外壳异常"| Error["502 可读错误"]
 ```
 
-外部请求必须设总超时；超时映射 504，网络/鉴权/上游错误映射 502。模型返回无法通过 JSON/Pydantic 校验时丢弃该输出，并在可安全降级的路径使用规则结果。未配置 API Key 时完全跳过外部请求：简历/JD 使用规则提取，`aiScore` 回退为规则综合分。日志仅记录耗时、模型名、状态类别和关联 ID，不记录 Prompt 全文或上游密钥。
+外部请求必须设总超时；超时映射 504，网络/鉴权/上游错误映射 502。模型返回无法通过 JSON/Pydantic 校验时丢弃该输出，并在可安全降级的路径使用规则结果。未配置 API Key 时完全跳过外部请求：简历/JD 使用规则提取，`aiScore` 回退为规则综合分，同时返回 `aiUsed=false`、`analysisMode=rules` 和安全告警；只有有效模型评价进入公式时才标记 `aiUsed=true`。日志仅记录耗时、模型名、状态类别和关联 ID，不记录 Prompt 全文或上游密钥。
 
 ## 7. 评分与可解释性
 
@@ -250,10 +255,10 @@ overall = clamp(
 
 | Key | Value | TTL | 用途 |
 | --- | --- | --- | --- |
-| `resume:parse:{resume_hash}` | PDF 元信息、清洗/结构化结果 | 默认 86400 秒 | 避免重复解析与提取 |
-| `resume:match:{resume_hash}:{jd_hash}` | 岗位分析和匹配结果 | 默认 86400 秒 | 避免同简历同岗位重复评分 |
+| `resume:parse:v1:{resume_hash}` | PDF 元信息、清洗/结构化结果 | 默认 86400 秒 | 避免重复解析与提取 |
+| `resume:match:v1:{resume_hash}:{jd_hash}` | 岗位分析和匹配结果 | 默认 86400 秒 | 避免同简历同岗位重复评分 |
 
-缓存 value 必须序列化为版本化 JSON；当 schema、Prompt、模型或评分算法有不兼容变化时，应在 key 中加入版本前缀或整体换 namespace，避免读取旧格式。
+缓存 value 序列化为 JSON，命中后先以 Pydantic 严格验证完整嵌套 schema，并核对简历 ID/哈希与岗位标题；损坏值视为 miss。`v1` 是缓存合同版本，schema、Prompt 或评分算法不兼容时升级 namespace。旧无版本 Parse Key 仅为滚动部署中的严格校验只读恢复，新请求不会命中或写入旧 namespace。
 
 降级原则：
 

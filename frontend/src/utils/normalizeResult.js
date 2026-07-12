@@ -54,6 +54,10 @@ function normalizeMatch(raw) {
     Object.entries(source).filter(([, value]) => value !== undefined && value !== null),
   )
   const match = { ...raw, ...definedSource }
+  const explicitAiUsed = firstDefined(match.aiUsed, match.ai_used)
+  const requestedMode = firstDefined(match.analysisMode, match.analysis_mode)
+  const claimsAi = explicitAiUsed === true || (explicitAiUsed == null && requestedMode === 'ai')
+  const aiUsed = claimsAi && requestedMode !== 'rules'
 
   return {
     overallScore: safeScore(firstDefined(match.overallScore, match.overall_score, match.score)),
@@ -76,6 +80,9 @@ function normalizeMatch(raw) {
       match.recommendation_level,
       match.recommendation,
     ),
+    aiUsed,
+    analysisMode: aiUsed ? 'ai' : 'rules',
+    warnings: toTextArray(firstDefined(match.warnings, match.warning)),
   }
 }
 

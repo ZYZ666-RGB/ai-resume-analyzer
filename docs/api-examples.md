@@ -66,7 +66,7 @@ curl -X POST "http://localhost:8000/api/resumes/parse" \
     "resumeId": "res_2f1c...full-sha256",
     "resumeHash": "2f1c...full-sha256",
     "pageCount": 2,
-    "cleanedText": "候选人文本（是否返回由 RETURN_CLEANED_TEXT 控制）",
+    "cleanedText": null,
     "resume": {
       "basicInfo": {
         "name": "示例候选人",
@@ -100,7 +100,7 @@ curl -X POST "http://localhost:8000/api/resumes/parse" \
 }
 ```
 
-公网页面建议设置 `RETURN_CLEANED_TEXT=false`，此时 `cleanedText` 为 `null`。`resumeHash` 和 `resumeId` 仍是可关联标识，不应写入公开分析平台。
+`RETURN_CLEANED_TEXT` 安全默认值为 `false`，因此 `cleanedText` 为 `null`；仅本地调试显式设为 `true` 时返回正文。`resumeHash` 和 `resumeId` 仍是可关联标识，不应写入公开分析平台。PDF 默认同时受 10 MB 与 50 页上限保护。
 
 ## 4. 使用解析结果匹配岗位
 
@@ -156,6 +156,9 @@ Invoke-RestMethod -Method Post `
       "projectScore": 75,
       "educationScore": 80,
       "aiScore": 80,
+      "aiUsed": true,
+      "analysisMode": "ai",
+      "warnings": null,
       "matchedKeywords": ["python", "fastapi", "redis"],
       "missingKeywords": ["docker"],
       "advantages": ["后端技术栈与岗位核心要求相符"],
@@ -168,7 +171,7 @@ Invoke-RestMethod -Method Post `
 }
 ```
 
-如果解析缓存过期且服务内也没有相应记录，`resumeId` 无法还原原简历，应返回 404；客户端需提示重新上传，而不是永久依赖该 ID。
+如果版本化解析缓存过期且服务内也没有相应记录，`resumeId` 无法还原原简历，应返回 404；客户端需提示重新上传，而不是永久依赖该 ID。未配置 AI 或模型正文未通过校验时，匹配结果会返回 `aiUsed=false`、`analysisMode="rules"` 和告警，前端应显示“规则回退分”。
 
 ## 5. 一次性完整分析
 
@@ -182,7 +185,7 @@ curl -X POST "http://localhost:8000/api/resumes/analyze" \
   -F "jobDescription=负责 FastAPI 服务和大模型应用开发；要求熟悉 Python、Redis、Docker，有 3 年以上相关经验。"
 ```
 
-响应将包含解析信息、岗位结构化结果、分项匹配结果和 `cacheHit`。同一 PDF 字节、岗位标题和 JD 再次提交时通常命中匹配缓存；若 Redis 被禁用或不可用，则正常重新分析并返回 `cacheHit: false`。
+响应将包含解析信息、岗位结构化结果、AI 参与状态、分项匹配结果和 `cacheHit`。岗位名称限制 1～120 字符，JD 限制 10～5000 字符；JSON 与 multipart 接口使用同一后端策略。同一 PDF 字节、岗位标题和 JD 再次提交时通常命中版本化匹配缓存；若 Redis 被禁用或不可用，则正常重新分析并返回 `cacheHit: false`。
 
 ## 6. 浏览器 Axios 示例
 
@@ -229,7 +232,7 @@ Content-Type: application/json
 HTTP/1.1 413 Payload Too Large
 Content-Type: application/json
 
-{"code":413,"message":"文件大小超过 10MB 限制","data":null}
+{"code":413,"message":"上传文件不能超过 10MB","data":null}
 ```
 
 ### 空或过短 JD
@@ -238,7 +241,7 @@ Content-Type: application/json
 HTTP/1.1 400 Bad Request
 Content-Type: application/json
 
-{"code":400,"message":"岗位描述不能为空或过短","data":null}
+{"code":400,"message":"岗位描述不能为空且至少需要 10 个字符","data":null}
 ```
 
 ### Schema 校验失败
@@ -256,17 +259,17 @@ Content-Type: application/json
 HTTP/1.1 502 Bad Gateway
 Content-Type: application/json
 
-{"code":502,"message":"AI 服务调用失败，请稍后重试","data":null}
+{"code":502,"message":"AI 服务调用失败","data":null}
 ```
 
 ```http
 HTTP/1.1 504 Gateway Timeout
 Content-Type: application/json
 
-{"code":504,"message":"AI 服务响应超时，请稍后重试","data":null}
+{"code":504,"message":"AI 服务调用超时","data":null}
 ```
 
-错误消息的具体中文可随实现调整，但不得包含 Python 堆栈、上游响应全文、API Key、Redis URL/密码或简历正文。
+模型消息正文为非法 JSON 或未通过 Pydantic 校验时，当前服务回退到规则结果；网络错误、非成功 HTTP 状态和上游响应外壳异常才返回 502。错误响应不得包含 Python 堆栈、上游响应全文、API Key、Redis URL/密码或简历正文。
 
 ## 8. 手工联调顺序
 

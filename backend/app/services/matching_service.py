@@ -99,7 +99,17 @@ class MatchingService:
             + education_score * 0.10
         )
         ai_evaluation = await self.ai_service.evaluate_match(resume, job)
-        ai_score = clamp_score(ai_evaluation.aiScore if ai_evaluation else rule_composite)
+        ai_used = ai_evaluation is not None
+        ai_score = clamp_score(ai_evaluation.aiScore if ai_used else rule_composite)
+        warnings: list[str] | None = None
+        if not ai_used:
+            warnings = [
+                (
+                    "AI 返回结果未通过格式校验，本次 AI 分项已使用可解释规则分替代。"
+                    if self.ai_service.enabled
+                    else "未配置 AI 服务，本次 AI 分项已使用可解释规则分替代。"
+                )
+            ]
         overall = clamp_score(
             skill_score * 0.40
             + experience_score * 0.20
@@ -140,5 +150,7 @@ class MatchingService:
             risks=risks,
             summary=summary,
             recommendationLevel=recommendation_level(overall),
+            aiUsed=ai_used,
+            analysisMode="ai" if ai_used else "rules",
+            warnings=warnings,
         )
-

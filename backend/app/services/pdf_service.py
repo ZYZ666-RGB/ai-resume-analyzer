@@ -45,10 +45,17 @@ class PDFService:
         except (fitz.FileDataError, RuntimeError, ValueError) as exc:
             raise BadRequestError("PDF 文件已损坏或无法解析") from exc
         try:
-            if document.page_count <= 0:
-                raise BadRequestError("PDF 中没有可解析的页面")
-            pages = [document.load_page(index).get_text("text") for index in range(document.page_count)]
             page_count = document.page_count
+            if page_count <= 0:
+                raise BadRequestError("PDF 中没有可解析的页面")
+            if page_count > self.settings.max_pdf_pages:
+                raise BadRequestError(
+                    f"PDF 页数不能超过 {self.settings.max_pdf_pages} 页"
+                )
+            pages = [
+                document.load_page(index).get_text("text")
+                for index in range(page_count)
+            ]
         except (RuntimeError, ValueError) as exc:
             raise BadRequestError("PDF 文件已损坏或无法解析") from exc
         finally:
@@ -57,4 +64,3 @@ class PDFService:
         if not text:
             raise BadRequestError("PDF 中没有可提取文本，请上传文本型 PDF")
         return PDFText(page_count=page_count, cleaned_text=text)
-

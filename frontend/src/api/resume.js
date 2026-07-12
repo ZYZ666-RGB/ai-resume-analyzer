@@ -7,23 +7,12 @@ function createBusinessError(message) {
   return error
 }
 
-export async function analyzeResume({ file, jobTitle, jobDescription, signal, onUploadProgress }) {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('jobTitle', jobTitle.trim())
-  formData.append('jobDescription', jobDescription.trim())
-
-  const response = await http.post('/api/resumes/analyze', formData, {
-    signal,
-    onUploadProgress,
-  })
-  const envelope = response.data
-
+export function unwrapApiEnvelope(envelope) {
   if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) {
     throw createBusinessError('分析服务返回格式异常，请检查 API 地址配置')
   }
 
-  if (envelope && Object.hasOwn(envelope, 'code') && Number(envelope.code) !== 200) {
+  if (Object.hasOwn(envelope, 'code') && Number(envelope.code) !== 200) {
     throw createBusinessError(envelope.message || '分析失败，请稍后重试')
   }
 
@@ -35,6 +24,19 @@ export async function analyzeResume({ file, jobTitle, jobDescription, signal, on
   }
 
   return envelope
+}
+
+export async function analyzeResume({ file, jobTitle, jobDescription, signal, onUploadProgress }) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('jobTitle', jobTitle.trim())
+  formData.append('jobDescription', jobDescription.trim())
+
+  const response = await http.post('/api/resumes/analyze', formData, {
+    signal,
+    onUploadProgress,
+  })
+  return unwrapApiEnvelope(response.data)
 }
 
 function validationMessage(detail) {

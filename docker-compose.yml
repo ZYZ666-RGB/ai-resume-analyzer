@@ -35,7 +35,8 @@ services:
       REDIS_DB: ${REDIS_DB:-0}
       REDIS_TTL: ${REDIS_TTL:-86400}
       MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-10}
-      RETURN_CLEANED_TEXT: ${RETURN_CLEANED_TEXT:-true}
+      MAX_PDF_PAGES: ${MAX_PDF_PAGES:-50}
+      RETURN_CLEANED_TEXT: ${RETURN_CLEANED_TEXT:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
     depends_on:
       redis:

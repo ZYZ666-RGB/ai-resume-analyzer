@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.job import JobAnalysis
 from app.schemas.resume import StructuredResume
 
 
 class AIMatchEvaluation(BaseModel):
-    aiScore: float = 50
-    advantages: list[str] = Field(default_factory=list)
-    risks: list[str] = Field(default_factory=list)
-    summary: str = ""
+    model_config = ConfigDict(extra="forbid")
+
+    aiScore: float
+    advantages: list[str]
+    risks: list[str]
+    summary: str
 
     @field_validator("aiScore")
     @classmethod
@@ -31,6 +35,9 @@ class MatchResult(BaseModel):
     risks: list[str] = Field(default_factory=list)
     summary: str
     recommendationLevel: str
+    aiUsed: bool = False
+    analysisMode: Literal["ai", "rules"] = "rules"
+    warnings: list[str] | None = None
 
     @field_validator(
         "overallScore",

@@ -9,6 +9,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.core.config import Settings
 from app.core.exceptions import AIServiceError
+from app.prompts.common import SYSTEM_JSON_INSTRUCTION
 from app.prompts.job_analysis import build_job_prompt
 from app.prompts.resume_extraction import build_resume_prompt
 from app.prompts.resume_matching import build_match_prompt
@@ -44,7 +45,7 @@ class AIService:
             "messages": [
                 {
                     "role": "system",
-                    "content": "You return only strict JSON grounded in the supplied text.",
+                    "content": SYSTEM_JSON_INSTRUCTION,
                 },
                 {"role": "user", "content": prompt},
             ],
@@ -102,4 +103,3 @@ class AIService:
     async def close(self) -> None:
         if self._client is not None and self._owns_client:
             await self._client.aclose()
-

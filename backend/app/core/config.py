@@ -55,7 +55,8 @@ class Settings(BaseModel):
     redis_ttl: int = 86400
 
     max_upload_size_mb: int = 10
-    return_cleaned_text: bool = True
+    max_pdf_pages: int = Field(default=50, gt=0)
+    return_cleaned_text: bool = False
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
 
     @property
@@ -90,7 +91,8 @@ class Settings(BaseModel):
             redis_db=_as_int(os.getenv("REDIS_DB"), 0),
             redis_ttl=_as_int(os.getenv("REDIS_TTL"), 86400),
             max_upload_size_mb=_as_int(os.getenv("MAX_UPLOAD_SIZE_MB"), 10),
-            return_cleaned_text=_as_bool(os.getenv("RETURN_CLEANED_TEXT"), True),
+            max_pdf_pages=_as_int(os.getenv("MAX_PDF_PAGES"), 50),
+            return_cleaned_text=_as_bool(os.getenv("RETURN_CLEANED_TEXT"), False),
             cors_origins=origins or ["http://localhost:5173"],
         )
 

@@ -23,6 +23,10 @@ const recommendation = computed(() => {
   return '匹配度较低'
 })
 
+const usesAi = computed(
+  () => props.result.match.aiUsed === true && props.result.match.analysisMode === 'ai',
+)
+
 const hasJobDetails = computed(() => {
   const job = props.result.job
   return Boolean(
@@ -44,13 +48,22 @@ const hasJobDetails = computed(() => {
       <div>
         <span class="eyebrow result-eyebrow"><span class="pulse-dot"></span> 分析已完成</span>
         <h2 id="results-title" tabindex="-1">候选人匹配报告</h2>
-        <p>评分由规则计算与 AI 综合评价共同生成，请结合面试判断。</p>
+        <p>
+          {{
+            usesAi
+              ? '评分由规则计算与 AI 辅助评价共同生成，请结合面试判断。'
+              : '本次评分使用可解释规则计算，未将规则回退结果标记为 AI 评价。'
+          }}
+        </p>
       </div>
       <div class="results-actions">
         <div class="result-meta" aria-label="分析元数据">
           <span v-if="result.pageCount">{{ result.pageCount }} 页 PDF</span>
           <span :class="result.cacheHit ? 'cache-hit' : 'cache-miss'">
             <i aria-hidden="true"></i>{{ result.cacheHit ? '缓存加速' : '实时分析' }}
+          </span>
+          <span>
+            <i aria-hidden="true"></i>{{ usesAi ? 'AI + 规则' : '规则回退' }}
           </span>
         </div>
         <button class="secondary-button" type="button" @click="$emit('reanalyze')">
@@ -62,7 +75,7 @@ const hasJobDetails = computed(() => {
     <div class="score-overview">
       <ScoreRing :score="result.match.overallScore" :recommendation="recommendation" />
       <div class="summary-panel">
-        <span class="summary-label">AI 综合评价</span>
+        <span class="summary-label">{{ usesAi ? 'AI 辅助评价' : '规则综合评价' }}</span>
         <blockquote>
           {{ displayValue(result.match.summary, '暂未生成综合评价，请结合分项评分与履历信息判断。') }}
         </blockquote>
@@ -70,6 +83,9 @@ const hasJobDetails = computed(() => {
           <span>推荐等级</span>
           <strong>{{ recommendation }}</strong>
         </div>
+        <p v-if="result.match.warnings?.length" class="empty-state small" role="status">
+          {{ result.match.warnings.join('；') }}
+        </p>
       </div>
       <div class="breakdown-panel">
         <div class="mini-heading">
@@ -150,7 +166,7 @@ const hasJobDetails = computed(() => {
           <span class="section-index">JD</span>
           <h3>岗位要求识别</h3>
         </div>
-        <span class="section-note">AI 结构化提取</span>
+        <span class="section-note">结构化岗位提取</span>
       </div>
       <div v-if="hasJobDetails" class="job-analysis-grid">
         <div class="job-title-block">

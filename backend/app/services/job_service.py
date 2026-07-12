@@ -3,7 +3,13 @@ from __future__ import annotations
 import re
 
 from app.core.exceptions import BadRequestError
-from app.schemas.job import JobAnalysis
+from app.schemas.job import (
+    JOB_DESCRIPTION_MAX_LENGTH,
+    JOB_DESCRIPTION_MIN_LENGTH,
+    JOB_TITLE_MAX_LENGTH,
+    JOB_TITLE_MIN_LENGTH,
+    JobAnalysis,
+)
 from app.services.ai_service import AIService
 from app.utils.skill_normalizer import extract_known_skills, normalize_skill, normalize_skills
 
@@ -88,10 +94,18 @@ class JobService:
     def validate(title: str, description: str) -> tuple[str, str]:
         title = title.strip()
         description = description.strip()
-        if not title:
+        if len(title) < JOB_TITLE_MIN_LENGTH:
             raise BadRequestError("岗位名称不能为空")
-        if len(description) < 10:
-            raise BadRequestError("岗位描述不能为空且至少需要 10 个字符")
+        if len(title) > JOB_TITLE_MAX_LENGTH:
+            raise BadRequestError(f"岗位名称不能超过 {JOB_TITLE_MAX_LENGTH} 个字符")
+        if len(description) < JOB_DESCRIPTION_MIN_LENGTH:
+            raise BadRequestError(
+                f"岗位描述不能为空且至少需要 {JOB_DESCRIPTION_MIN_LENGTH} 个字符"
+            )
+        if len(description) > JOB_DESCRIPTION_MAX_LENGTH:
+            raise BadRequestError(
+                f"岗位描述不能超过 {JOB_DESCRIPTION_MAX_LENGTH} 个字符"
+            )
         return title, description
 
     async def analyze(self, title: str, description: str) -> JobAnalysis:

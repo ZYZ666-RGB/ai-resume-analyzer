@@ -1,20 +1,25 @@
 <script setup>
+import { computed } from 'vue'
 import { safeScore } from '../utils/formatters'
 
-defineProps({
+const props = defineProps({
   match: {
     type: Object,
     required: true,
   },
 })
 
-const dimensions = [
+const dimensions = computed(() => [
   { key: 'skillScore', label: '技能匹配', weight: '40%' },
   { key: 'experienceScore', label: '工作经验', weight: '20%' },
   { key: 'projectScore', label: '项目相关', weight: '20%' },
   { key: 'educationScore', label: '学历匹配', weight: '10%' },
-  { key: 'aiScore', label: 'AI 评价', weight: '10%' },
-]
+  {
+    key: 'aiScore',
+    label: props.match.aiUsed && props.match.analysisMode === 'ai' ? 'AI 评价' : '规则回退分',
+    weight: '10%',
+  },
+])
 </script>
 
 <template>

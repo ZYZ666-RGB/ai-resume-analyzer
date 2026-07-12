@@ -1,4 +1,10 @@
 <script setup>
+import {
+  JOB_DESCRIPTION_MAX_LENGTH,
+  JOB_DESCRIPTION_MIN_LENGTH,
+  JOB_TITLE_MAX_LENGTH,
+} from '../utils/analyzer'
+
 defineProps({
   jobTitle: {
     type: String,
@@ -30,7 +36,7 @@ defineEmits(['update:jobTitle', 'update:jobDescription', 'fill-sample'])
         type="text"
         :value="jobTitle"
         :disabled="disabled"
-        maxlength="120"
+        :maxlength="JOB_TITLE_MAX_LENGTH"
         autocomplete="organization-title"
         placeholder="例如：Python 后端开发工程师"
         required
@@ -50,7 +56,7 @@ defineEmits(['update:jobTitle', 'update:jobDescription', 'fill-sample'])
         class="field-textarea"
         :value="jobDescription"
         :disabled="disabled"
-        maxlength="5000"
+        :maxlength="JOB_DESCRIPTION_MAX_LENGTH"
         rows="9"
         aria-describedby="jd-help"
         placeholder="粘贴完整岗位职责、技能要求、经验与学历要求。描述越具体，匹配结果越有参考价值。"
@@ -58,8 +64,8 @@ defineEmits(['update:jobTitle', 'update:jobDescription', 'fill-sample'])
         @input="$emit('update:jobDescription', $event.target.value)"
       ></textarea>
       <div id="jd-help" class="field-footer">
-        <span>建议至少填写 20 个字符</span>
-        <span>{{ jobDescription.length }} / 5000</span>
+        <span>至少 {{ JOB_DESCRIPTION_MIN_LENGTH }} 个字符，建议填写完整职责与要求</span>
+        <span>{{ jobDescription.length }} / {{ JOB_DESCRIPTION_MAX_LENGTH }}</span>
       </div>
     </div>
   </div>

@@ -6,27 +6,14 @@ import AnalysisResults from './components/AnalysisResults.vue'
 import AppHeader from './components/AppHeader.vue'
 import JobDescriptionForm from './components/JobDescriptionForm.vue'
 import ResumeUpload from './components/ResumeUpload.vue'
+import {
+  JOB_DESCRIPTION_MAX_LENGTH,
+  JOB_DESCRIPTION_MIN_LENGTH,
+  JOB_TITLE_MAX_LENGTH,
+  SAMPLE_JOB,
+  canAnalyze,
+} from './utils/analyzer'
 import { normalizeAnalysisResult } from './utils/normalizeResult'
-
-const MIN_JOB_DESCRIPTION_LENGTH = 10
-
-const sampleJob = {
-  title: 'Python AI 应用工程师',
-  description: `岗位职责：
-1. 负责基于 Python 与 FastAPI 的 AI 应用和后端服务设计、开发及性能优化；
-2. 结合大语言模型完成提示词设计、RAG 检索、结构化信息提取与评测体系建设；
-3. 参与 RESTful API、异步任务、Redis 缓存及云端部署方案建设；
-4. 与产品、前端和算法团队协作，推动 AI 能力在真实业务场景稳定落地。
-
-任职要求：
-1. 本科及以上学历，计算机或相关专业，3 年以上 Python 开发经验；
-2. 熟悉 Python、FastAPI、Pydantic、Redis、PostgreSQL，具备良好的工程化能力；
-3. 有通义千问、OpenAI 或其他大模型 API 接入经验，理解 Prompt Engineering 与 RAG；
-4. 熟悉 Docker、Git、Linux，了解云原生或 Serverless 部署；
-5. 具备良好的沟通能力、问题分析能力和隐私安全意识。
-
-加分项：有 Vue 3 前端经验、AI 应用效果评测经验或招聘科技领域项目经验。`,
-}
 
 const resumeFile = ref(null)
 const fileError = ref('')
@@ -43,21 +30,24 @@ const analyzerRef = ref(null)
 let stageTimers = []
 let activeController = null
 
-const canSubmit = computed(
-  () =>
-    Boolean(resumeFile.value) &&
-    jobTitle.value.trim().length > 0 &&
-    jobDescription.value.trim().length >= MIN_JOB_DESCRIPTION_LENGTH &&
-    !isSubmitting.value,
+const canSubmit = computed(() =>
+  canAnalyze({
+    file: resumeFile.value,
+    jobTitle: jobTitle.value,
+    jobDescription: jobDescription.value,
+    isSubmitting: isSubmitting.value,
+  }),
 )
 
 const submitHint = computed(() => {
   if (isSubmitting.value) return '分析通常需要数秒，请勿重复提交'
   if (!resumeFile.value) return '请先选择一份 PDF 简历'
   if (!jobTitle.value.trim()) return '请填写岗位名称'
-  if (jobDescription.value.trim().length < MIN_JOB_DESCRIPTION_LENGTH) {
-    return `岗位描述还需填写 ${MIN_JOB_DESCRIPTION_LENGTH - jobDescription.value.trim().length} 个字符`
+  if (jobTitle.value.trim().length > JOB_TITLE_MAX_LENGTH) return '岗位名称超过长度限制'
+  if (jobDescription.value.trim().length < JOB_DESCRIPTION_MIN_LENGTH) {
+    return `岗位描述还需填写 ${JOB_DESCRIPTION_MIN_LENGTH - jobDescription.value.trim().length} 个字符`
   }
+  if (jobDescription.value.trim().length > JOB_DESCRIPTION_MAX_LENGTH) return '岗位描述超过长度限制'
   return '材料已就绪，可以开始分析'
 })
 
@@ -116,8 +106,8 @@ function handleUploadProgress(event) {
 }
 
 function fillSample() {
-  jobTitle.value = sampleJob.title
-  jobDescription.value = sampleJob.description
+  jobTitle.value = SAMPLE_JOB.title
+  jobDescription.value = SAMPLE_JOB.description
   requestError.value = ''
 }
 
@@ -129,8 +119,12 @@ function handleFileValidation(message) {
 function validateForm() {
   if (!resumeFile.value) return '请选择一份 PDF 简历'
   if (!jobTitle.value.trim()) return '请填写有效的岗位名称'
-  if (jobDescription.value.trim().length < MIN_JOB_DESCRIPTION_LENGTH) {
-    return `岗位描述至少需要 ${MIN_JOB_DESCRIPTION_LENGTH} 个字符`
+  if (jobTitle.value.trim().length > JOB_TITLE_MAX_LENGTH) return `岗位名称不能超过 ${JOB_TITLE_MAX_LENGTH} 个字符`
+  if (jobDescription.value.trim().length < JOB_DESCRIPTION_MIN_LENGTH) {
+    return `岗位描述至少需要 ${JOB_DESCRIPTION_MIN_LENGTH} 个字符`
+  }
+  if (jobDescription.value.trim().length > JOB_DESCRIPTION_MAX_LENGTH) {
+    return `岗位描述不能超过 ${JOB_DESCRIPTION_MAX_LENGTH} 个字符`
   }
   return ''
 }

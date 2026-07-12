@@ -2,7 +2,13 @@ from fastapi import APIRouter, File, Form, UploadFile
 
 from app.core.exceptions import BadRequestError
 from app.schemas.common import ApiResponse, success
-from app.schemas.job import MatchRequest
+from app.schemas.job import (
+    JOB_DESCRIPTION_MAX_LENGTH,
+    JOB_DESCRIPTION_MIN_LENGTH,
+    JOB_TITLE_MAX_LENGTH,
+    JOB_TITLE_MIN_LENGTH,
+    MatchRequest,
+)
 from app.schemas.match import AnalyzeResponseData, MatchResponseData
 from app.schemas.resume import ParsedResumeData
 from app.services.container import analysis_service
@@ -33,8 +39,16 @@ async def match_resume(payload: MatchRequest) -> dict:
 @router.post("/analyze", response_model=ApiResponse[AnalyzeResponseData])
 async def analyze_resume(
     file: list[UploadFile] = File(...),
-    jobTitle: str = Form(...),
-    jobDescription: str = Form(...),
+    jobTitle: str = Form(
+        ...,
+        min_length=JOB_TITLE_MIN_LENGTH,
+        max_length=JOB_TITLE_MAX_LENGTH,
+    ),
+    jobDescription: str = Form(
+        ...,
+        min_length=JOB_DESCRIPTION_MIN_LENGTH,
+        max_length=JOB_DESCRIPTION_MAX_LENGTH,
+    ),
 ) -> dict:
     data = await analysis_service.analyze(_require_single_file(file), jobTitle, jobDescription)
     return success(data, "分析成功")
